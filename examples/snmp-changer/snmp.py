@@ -45,11 +45,15 @@ def extract_snmp_community(result):
     3. Prepare implementation to deploy new community.
     4. Return list of devices to remmediate.
     """
+    import re
+
+    regexp = re.compile('Community Index: (.*?)\r\n')
+
     rv = []
 
-    for device, result in result.items():
-        pass
-
+    for hostname, cli_output in result.items():
+        communities = regexp.findall(cli_output.values()[0])
+        log.msg("Extracting snmp communities {0} from {1}".format(communities, hostname))
 
 def stop_reactor(data):
     """Stop the event loop"""
@@ -65,6 +69,7 @@ def main():
     global snmp_hosts
     device_list = map(lambda x: x.nodeName, nds)
     jobs = GetSNMPInfo(device_list).run()
+    jobs.addCallback(extract_snmp_community)
     jobs.addBoth(stop_reactor)
     reactor.run()
     # run.addBoth(stop_reactor)
