@@ -1,7 +1,7 @@
 [
     {
         "adminStatus": "PRODUCTION", 
-        "enablePW": "ansible", 
+        "enablePW": "cisco", 
         "OOBTerminalServerTCPPort": "5005", 
         "assetID": "0000012345", 
         "OOBTerminalServerNodeName": "ts1", 
@@ -22,7 +22,7 @@
         "projectName": "Test Lab", 
         "barcode": "0101010101", 
         "site": "LAB", 
-        "loginPW": "ansible", 
+        "loginPW": "cisco", 
         "lifecycleStatus": "INSTALLED", 
         "manufacturer": "CISCO", 
         "layer3": "1", 
