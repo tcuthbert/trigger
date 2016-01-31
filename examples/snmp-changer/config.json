@@ -1,4 +1,12 @@
 {
-	"old_snmp_ro_string": "public",
-	"new_snmp_ro_string": "666"
+	"oldCommunityStrings": [
+		"public"
+	],
+	"newCommunityStrings": [
+		{
+			"host": "",
+			"community": "666",
+			"mode": "RO"
+		}
+	]
 }
