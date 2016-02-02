@@ -1,5 +1,7 @@
 import sys
 import json
+import argparse
+import os
 from trigger.cmds import Commando, ReactorlessCommando
 from trigger.netdevices import NetDevices, NetDevice
 from twisted.internet import reactor
@@ -122,13 +124,26 @@ def stop_reactor(data):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('-c', '--config', type=str, nargs='?',
+                       help='Path to json config file')
+
+    parser.add_argument('-i', '--inventory', type=str, nargs='?',
+                       help='Path to json inventory file, defaults to default Trigger netdevices.json')
+
+    args = parser.parse_args()
+
     log.startLogging(sys.stdout, setStdout=False)
     nds = NetDevices().all()
     global device_list
     global snmp_hosts
     snmp_hosts = {}
     global config
-    config = json.loads(open('{0}/config.json'.format(sys.argv[1]), 'rb').read())
+
+    if os.path.isfile(args.config):
+        config = json.loads(open(args.config.format(sys.argv[1]), 'rb').read())
+    else:
+        raise ValueError("Not a valid path to config file")
 
     device_list = map(lambda x: x.nodeName, nds)
 
