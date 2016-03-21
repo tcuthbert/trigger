@@ -610,6 +610,21 @@ def execute_async_pty_ssh(device, commands, creds=None, incremental=None,
                                channel_class, prompt_pattern, method)
 
 
+def execute_loop_ssh(device, commands, **kwargs):
+    """Execute commands in a loop."""
+    channel_class = LoopingPersistentChannel
+    method = 'Async PTTY loop'
+    prompt_pattern = kwargs.pop('prompt_pattern', None)
+    if prompt_pattern is None:
+        prompt_pattern = device.vendor.prompt_pattern
+
+    return execute_generic_ssh(
+            device, commands, channel_class=channel_class,
+            prompt_pattern=prompt_pattern, method=method,
+            **kwargs
+            )
+
+
 def execute_ioslike_ssh(device, commands, creds=None, incremental=None,
                         with_errors=False, timeout=settings.DEFAULT_TIMEOUT,
                         command_interval=0):
@@ -1415,6 +1430,39 @@ class TriggerSSHAsyncPtyChannel(TriggerSSHChannelBase):
         d = self.conn.sendRequest(self, 'shell', '', wantReply=True)
         d.addCallback(self._gotResponse)
         d.addErrback(self._ebShellOpen)
+
+
+class LoopingPersistentChannel(TriggerSSHAsyncPtyChannel):
+    loop_delay = 2 # In seconds.
+    really_done = False # Are we really done?
+
+    def connectionMade(self):
+        self.device.connected = True
+        self.device.session = self
+
+    def loseConnection(self):
+        """Only terminate the connection if we're all done."""
+        log.msg('=' * 50)
+        import datetime
+        # log.msg('I AM LITTLE JATHY LOSE CONNECTION')
+        print self.device
+        print datetime.datetime.now()
+        print self.results[0]
+        log.msg('=' * 50)
+
+        if self.really_done:
+            self.reallyLoseConnection()
+        else:
+            self.results = []
+            self.commanditer = iter(self.factory.commands)  # Reset commands
+            reactor.callLater(self.loop_delay, self._send_next)  # Start
+
+    def timeoutConnection(self):
+        if self.really_done:
+            self.reallyLoseConnection()
+
+    def reallyLoseConnection(self):
+        super(LoopingPersistentChannel, self).timeoutConnection()
 
 
 class TriggerSSHCommandChannel(TriggerSSHChannelBase):

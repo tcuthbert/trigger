@@ -49,6 +49,12 @@ except ImportError:
     log.msg("ACLs database could not be loaded; Loading without ACL support")
     settings.WITH_ACLS = False
 
+try:
+    from crochet import setup, run_in_reactor, wait_for
+    setup()
+except ImportError:
+    log.msg("Crochet library could not be loaded. Unable to provide persistent connections.")
+    settings.PERSISTENCE = False
 
 # Constants
 JUNIPER_COMMIT = ET.Element('commit-configuration')
@@ -250,6 +256,41 @@ class NetDevice(object):
 
         # Set the correct line-ending per vendor
         self.delimiter = self._set_delimiter()
+
+        # Sentinel for whether this device has a connection.
+        self.connected = False
+        self.session = None
+
+        def _return_single_result(self, result):
+            return result[0]
+
+        @wait_for(settings.DEFAULT_TIMEOUT)
+        def run_command(self, command):
+            """Run given command against device and return output.
+
+            :param command:
+                The command to execute on the device.
+            :type  command:
+                str
+            """
+            d = self.execute([command])
+            d.addCallback(self._return_single_result)
+            return d
+
+        @wait_for(settings.DEFAULT_TIMEOUT)
+        def execute_loop(self, commands):
+            """Execute commands in an event loop.
+            
+            :param commands:
+                The list of commands to execute on the device.
+            :type  commands:
+                list
+            """
+            from trigger import twister
+            d = twister.execute_loop_ssh(self, commands)
+            d.callBack(self._return_single_result)
+            return d
+
 
     def _populate_data(self, data):
         """
