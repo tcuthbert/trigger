@@ -10,6 +10,8 @@ __email__ = 'jathan.mccollum@teamaol.com'
 __copyright__ = 'Copyright 2008-2013, AOL Inc.'
 
 from collections import namedtuple
+from twisted.internet import reactor
+from twisted.python import log
 import re
 from .cli import get_user
 
@@ -76,3 +78,10 @@ def parse_node_port(nodeport, delimiter=':'):
         port = None
 
     return NodePort(str(node), port)
+
+def is_reactor_running():
+    if reactor.running:
+        log.msg("Reactor Already Running")
+        return True
+    else:
+        return False

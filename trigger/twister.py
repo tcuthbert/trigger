@@ -27,7 +27,7 @@ from xml.etree.ElementTree import (Element, ElementTree, XMLTreeBuilder)
 
 from trigger.conf import settings
 from trigger import tacacsrc, exceptions
-from trigger.utils import network, cli
+from trigger.utils import network, cli, is_reactor_running
 
 
 __author__ = 'Jathan McCollum, Eileen Tschetter, Mark Thomas, Michael Shields'
@@ -325,7 +325,8 @@ def connect(device, init_commands=None, output_logger=None, login_errback=None,
         sys.stderr.write('Could not connect to %s.\n' % device)
         return 2  # Bad exit code
 
-    cli.setup_tty_for_pty(reactor.run)
+    if not is_reactor_running():
+        cli.setup_tty_for_pty(reactor.run)
 
     # If there is a login failure stop the reactor so we can take raw_input(),
     # ask the user if they, want to update their cached credentials, and

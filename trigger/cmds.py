@@ -29,6 +29,7 @@ from twisted.internet import defer, task
 
 from trigger.netdevices import NetDevices
 from trigger.utils.templates import load_cmd_template, get_textfsm_object, get_template_path
+from trigger.utils import is_reactor_running
 from trigger.conf import settings
 from trigger import exceptions
 
@@ -592,8 +593,9 @@ class Commando(object):
         """
         Nothing happens until you execute this to perform the actual work.
         """
-        self._add_worker()
-        self._start()
+        if not is_reactor_running():
+            self._add_worker()
+            self._start()
 
     #=======================================
     # Base generate (to_)/parse (from_) methods
