@@ -1455,6 +1455,7 @@ class LoopingPersistentChannel(TriggerSSHAsyncPtyChannel):
             self.reallyLoseConnection()
         else:
             self.results = []
+            self.factory.commands = self.factory.commands[1:] # Remove executed command
             self.commanditer = iter(self.factory.commands)  # Reset commands
             reactor.callLater(self.loop_delay, self._send_next)  # Start
 
