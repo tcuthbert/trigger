@@ -614,6 +614,7 @@ def execute_async_pty_ssh(device, commands, creds=None, incremental=None,
 def execute_loop_ssh(device, commands, **kwargs):
     """Execute commands in a loop."""
     channel_class = LoopingPersistentChannel
+    channel_class.device = device # Channel class needs to track the state of upstream NetDevice object
     method = 'Async PTTY loop'
     prompt_pattern = kwargs.pop('prompt_pattern', None)
     if prompt_pattern is None:
@@ -625,6 +626,19 @@ def execute_loop_ssh(device, commands, **kwargs):
             **kwargs
             )
 
+# def kill_loop_ssh(device, **kwargs):
+    # """Execute commands in a loop."""
+    # channel_class = LoopingPersistentChannel
+    # method = 'Async PTTY loop'
+    # prompt_pattern = kwargs.pop('prompt_pattern', None)
+    # if prompt_pattern is None:
+        # prompt_pattern = device.vendor.prompt_pattern
+
+    # return kill_generic_ssh(
+            # device, channel_class=channel_class,
+            # prompt_pattern=prompt_pattern, method=method,
+            # **kwargs
+            # )
 
 def execute_ioslike_ssh(device, commands, creds=None, incremental=None,
                         with_errors=False, timeout=settings.DEFAULT_TIMEOUT,
@@ -1434,37 +1448,46 @@ class TriggerSSHAsyncPtyChannel(TriggerSSHChannelBase):
 
 
 class LoopingPersistentChannel(TriggerSSHAsyncPtyChannel):
-    loop_delay = 2 # In seconds.
-    really_done = False # Are we really done?
+    loop_delay = 0 # In seconds.
+    really_done = False  # Are we really done?
+
+    def _shift_factory_commands_right(self):
+        if self.factory.commands:
+            return self.factory.commands[:]
 
     def connectionMade(self):
         self.device.connected = True
         self.device.session = self
+
+    def done(self):
+        if self.device.done:
+            self.really_done = True
 
     def loseConnection(self):
         """Only terminate the connection if we're all done."""
         log.msg('=' * 50)
         import datetime
         # log.msg('I AM LITTLE JATHY LOSE CONNECTION')
-        print self.device
-        print datetime.datetime.now()
+        # print self.device
+        # print datetime.datetime.now()
         print self.results[0]
         log.msg('=' * 50)
 
-        if self.really_done:
-            self.reallyLoseConnection()
-        else:
-            self.results = []
-            self.factory.commands = self.factory.commands[1:] # Remove executed command
+        self.results = []
+        self.factory.commands = self._shift_factory_commands_right() or None # Remove executed command
+        if self.factory.commands:
             self.commanditer = iter(self.factory.commands)  # Reset commands
             reactor.callLater(self.loop_delay, self._send_next)  # Start
+        else:
+            if self.really_done:
+                self.reallyLoseConnection()
 
-    def timeoutConnection(self):
-        if self.really_done:
-            self.reallyLoseConnection()
+    # def timeoutConnection(self):
+        # if self.really_done:
+            # self.reallyLoseConnection()
 
     def reallyLoseConnection(self):
-        super(LoopingPersistentChannel, self).timeoutConnection()
+        super(LoopingPersistentChannel, self).loseConnection()
 
 
 class TriggerSSHCommandChannel(TriggerSSHChannelBase):

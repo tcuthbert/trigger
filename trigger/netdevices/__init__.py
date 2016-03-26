@@ -254,8 +254,10 @@ class NetDevice(object):
         self.delimiter = self._set_delimiter()
 
         # Sentinel for whether this device has a connection.
+        self.execute_commands = None
         self.connected = False
         self.session = None
+        self.done = False
 
     def _return_single_result(self, result):
         return result[0]
@@ -274,17 +276,21 @@ class NetDevice(object):
         return d
 
     @wait_for(settings.DEFAULT_TIMEOUT)
-    def execute_loop(self, commands):
+    def execute_loop(self):
         """Execute commands in an event loop.
         
-        :param commands:
-            The list of commands to execute on the device.
+        # :param commands:
+            # The list of commands to execute on the device.
         :type  commands:
             list
         """
         from trigger import twister
-        d = twister.execute_loop_ssh(self, commands)
-        return d
+        while self.done is False:
+            commands = yield
+            if commands:
+                d = twister.execute_loop_ssh(self, commands)
+                yield d
+        # return d
 
 
     def _populate_data(self, data):
