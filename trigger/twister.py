@@ -1450,14 +1450,20 @@ class TriggerSSHAsyncPtyChannel(TriggerSSHChannelBase):
 class LoopingPersistentChannel(TriggerSSHAsyncPtyChannel):
     loop_delay = 0 # In seconds.
     really_done = False  # Are we really done?
+    device = None
+
+    def __init__(self, *args, **kwargs):
+        # self.device.connected = True
+        self.device.session = self
+        super(LoopingPersistentChannel, self).__init__(*args, **kwargs)
 
     def _shift_factory_commands_right(self):
         if self.factory.commands:
             return self.factory.commands[:]
 
-    def connectionMade(self):
-        self.device.connected = True
-        self.device.session = self
+    # def connectionMade(self):
+        # self.device.connected = True
+        # self.device.session = self
 
     def done(self):
         if self.device.done:
@@ -1470,11 +1476,12 @@ class LoopingPersistentChannel(TriggerSSHAsyncPtyChannel):
         # log.msg('I AM LITTLE JATHY LOSE CONNECTION')
         # print self.device
         # print datetime.datetime.now()
-        print self.results[0]
+        # print self.results[0]
         log.msg('=' * 50)
 
         self.results = []
         self.factory.commands = self._shift_factory_commands_right() or None # Remove executed command
+        self.done()
         if self.factory.commands:
             self.commanditer = iter(self.factory.commands)  # Reset commands
             reactor.callLater(self.loop_delay, self._send_next)  # Start
